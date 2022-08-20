@@ -1,3 +1,9 @@
+#!/usr/bin/env R
+
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org"
+options(repos = r)
+
 # install.r is a script for remote package installation. It is used to install packages on remote machines or in image files.
 
 install.packages("argparser", quiet= TRUE, version = "0.7.1")
