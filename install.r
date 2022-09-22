@@ -9,6 +9,9 @@ options(repos = r)
 install.packages("argparser", quiet= TRUE, version = "0.7.1")
 install.packages("argparse", quiet= TRUE, version = "2.1.5")
 
+install.packages("plotly", quiet= TRUE, version = "4.10.0")
+install.packages("tidyverse", quiet= TRUE, version = "1.3.2")
+
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager", quiet= TRUE)
 
