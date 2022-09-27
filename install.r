@@ -14,6 +14,14 @@ install.packages("tidyverse", quiet= TRUE, version = "1.3.2", dependencies=TRUE)
 
 install.packages("rmarkdown", quiet= TRUE, version = "2.16", dependencies=TRUE)
 
+# installing/loading the package:
+if(!require(installr)) { install.packages("installr"); require(installr)} #load / install+load installr
+
+# Installing pandoc
+install.pandoc()
+
+#install Bioconductor packages
+
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager", quiet= TRUE, dependencies=TRUE)
 
