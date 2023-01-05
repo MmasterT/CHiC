@@ -19,7 +19,7 @@
 
 # See https://github.com/ArimaGenomics/CHiC for installation help
 
-version="v1.4"
+version="v1.5"
 cwd=$(dirname $0)
 ############################################################################
 ###                         Arima CHiC pipeline                         ###
@@ -28,11 +28,6 @@ cwd=$(dirname $0)
 ############################################################################
 ###                      Command Line Arguments                          ###
 ############################################################################
-#usage_Help="Usage: ${0##*/} [-W run_hicup] [-Y run_bam2chicago] [-Z run_chicago] [-P run_plot]
-#       [-A bowtie2] [-X bowtie2_index_basename] [-d digest] [-H hicup_dir] [-C chicago_dir]
-#       [-I FASTQ_string] [-o out_dir] [-p output_prefix] [-R RMAP] [-B BAITMAP] [-D design_dir]
-#       [-O organism] [-m minFragLen] [-M maxFragLen] [-r resolution] [-s binsize]
-#       [-n minNPerBait] [-L maxLBrownEst] [-t threads] [-v] [-h] \n"
 usage_Help="Usage: ${0##*/} [-W run_hicup] [-Y run_bam2chicago] [-Z run_chicago] [-P run_plot]
               [-A bowtie2] [-X bowtie2_index_basename] [-d digest] [-H hicup_dir] [-C chicago_dir]
               [-I FASTQ_string] [-o out_dir] [-p output_prefix] [-b BED] [-R RMAP] [-B BAITMAP]
@@ -53,8 +48,7 @@ output_prefix_Help="* [-p output_prefix]: output file prefix (filename only, not
 BED_Help="* [-b BED]: the Arima capture probes design BED file for CHiCAGO"
 RMAP_Help="* [-R RMAP]: CHiCAGO's *.rmap file"
 BAITMAP_Help="* [-B BAITMAP]: CHiCAGO's *.baitmap file"
-design_dir_Help="* [-D design_dir]: directory containing CHiCAGO's design files
-    (exactly one of each: *.poe, *.npb, and *.nbpb)"
+design_dir_Help="* [-D design_dir]: directory containing CHiCAGO's design files (exactly one of each: *.poe, *.npb, and *.nbpb)"
 organism_Help="* [-O organism]: organism must be one of \"hg19\", \"hg38\", \"mm9\", or \"mm10\""
 #minFragLen_Help="* [-m minFragLen]: minFragLen and maxFragLen correspond to the limits within
 #    which we observed no clear dependence between fragment length and the numbers
@@ -62,8 +56,7 @@ organism_Help="* [-O organism]: organism must be one of \"hg19\", \"hg38\", \"mm
 #maxFragLen_Help="* [-M maxFragLen]: minFragLen and maxFragLen correspond to the limits within
 #    which we observed no clear dependence between fragment length and the numbers
 #    of reads mapping to these fragments in CHiC data"
-resolution_Help="* [-r resolution]: resolution of the loops called, must be one of
-    \"1f\", \"1kb\", \"3kb\", or \"5kb\""
+resolution_Help="* [-r resolution]: resolution of the loops called, must be one of \"1f\", \"1kb\", \"3kb\", or \"5kb\""
 #binsize_Help="* [-s binsize]: the bin size (in bases) used when estimating the Brownian collision
 #    parameters. The bin size should, on average, include several (~4-5)
 #    restriction fragments to increase the robustness of parameter estimation."
@@ -143,7 +136,6 @@ threads=12 # number of threads to run HiCUP and CHiCAGO.
   #genome_size=2725537669
 #fi
 
-# while getopts "A:B:C:d:D:hH:I:L:m:M:n:O:o:P:p:R:r:s:t:vW:X:Y:Z:" opt; do
 while getopts "A:B:b:C:d:D:hH:I:O:o:P:p:R:r:t:vW:X:Y:Z:" opt; do
     case $opt in
     h) printHelpAndExit 0;;
@@ -319,7 +311,7 @@ if [ -z "$output_prefix" ]; then
 fi
 
 if [ -z "$resolution" ]; then
-    echo "Please provide a resolution (-r)!"
+    echo "Please provide a resolution for CHiCAGO (-r)!"
     printHelpAndExit 1
 else
     if [[ "$resolution" == "1f" ]]; then
@@ -349,7 +341,7 @@ else
 fi
 
 if [ -z "$binsize" ]; then
-    echo "Please provide a binsize (-s)!"
+    echo "Please provide a binsize for CHiCAGO (-s)!"
     printHelpAndExit 1
 elif ! [[ "$binsize" =~ ^[0-9]+$ ]]; then
     echo "The binsize must be an integer (-s)!"
@@ -357,7 +349,7 @@ elif ! [[ "$binsize" =~ ^[0-9]+$ ]]; then
 fi
 
 if [ -z "$minFragLen" ]; then
-    echo "Please provide a minFragLen (-m)!"
+    echo "Please provide a minFragLen for CHiCAGO (-m)!"
     printHelpAndExit 1
 elif ! [[ "$minFragLen" =~ ^[0-9]+$ ]]; then
     echo "The minFragLen must be an integer (-s)!"
@@ -365,7 +357,7 @@ elif ! [[ "$minFragLen" =~ ^[0-9]+$ ]]; then
 fi
 
 if [ -z "$maxFragLen" ]; then
-    echo "Please provide a maxFragLen (-M)!"
+    echo "Please provide a maxFragLen for CHiCAGO (-M)!"
     printHelpAndExit 1
 elif ! [[ "$maxFragLen" =~ ^[0-9]+$ ]]; then
     echo "The maxFragLen must be an integer (-s)!"
@@ -492,7 +484,6 @@ fi
 raw_R1=$( head $hicup_summary_report | grep -v "Total_Reads_1" | head -1 | cut -f2 )
 raw_R2=$( head $hicup_summary_report | grep -v "Total_Reads_1" | head -1 | cut -f3 )
 raw_pairs=$(( ($raw_R1 + $raw_R2)/2 ))
-
 
 if [ "$run_bam2chicago" -eq 0 ]; then
     echo "Skipping bam2chicago.sh and using previous HiCUP output from $out_hicup and $output_prefix.chinput from $out_bam2chicago/$output_prefix/"
@@ -660,27 +651,46 @@ total_pairs=$( head $hicup_summary_report | grep -v "Total_Reads_1" | head -1 | 
 valid_pairs=$( head $hicup_summary_report | grep -v "Total_Reads_1" | head -1 | cut -f20 )
 uniq_valid_pairs=$( head $hicup_summary_report | grep -v "Total_Reads_1" | head -1 | cut -f31 )
 duplicated_pairs=$(( $valid_pairs - $uniq_valid_pairs ))
-uniq_valid_pairs_p=`echo "scale=4; 100 * $uniq_valid_pairs / $valid_pairs" | bc | awk '{ printf("%.1f", $0) }'`
-duplicated_pairs_p=`echo "scale=4; 100 * $duplicated_pairs / $valid_pairs" | bc | awk '{ printf("%.1f", $0) }'`
+
+# Modified based on the metrics definition spreadsheet, but is inconsistent with HiCUP summary report output!
+uniq_valid_pairs_p=`echo "scale=4; 100 * $uniq_valid_pairs / $total_pairs" | bc | awk '{ printf("%.1f", $0) }'`
+duplicated_pairs_p=`echo "scale=4; 100 * $duplicated_pairs / $total_pairs" | bc | awk '{ printf("%.1f", $0) }'`
+
+# Change the calculation of %Lcis. Use "uniq_total_pairs" as the denominator (Modified in v1.5).
+uniqueness_rate=`echo "scale=9; $uniq_valid_pairs / $valid_pairs" | bc | awk '{ printf("%.9f", $0) }'`
+#invalid_pairs=$( head $hicup_summary_report | grep -v "Total_Reads_1" | head -1 | cut -f24 )
+#uniq_invalid_pairs=`echo "scale=4; $invalid_pairs * $uniqueness_rate + 0.5" | bc | awk '{ printf("%d", $0) }'`
+uniq_total_pairs=`echo "scale=4; $total_pairs * $uniqueness_rate + 0.5" | bc | awk '{ printf("%d", $0) }'`
 
 inter_pairs=$( head $hicup_summary_report | grep -v "Total_Reads_1" | head -1 | cut -f34 )
-inter_pairs_p=`echo "scale=4; 100 * $inter_pairs / $uniq_valid_pairs" | bc | awk '{ printf("%.1f", $0) }'`
-intra_pairs=$(( $uniq_valid_pairs - $inter_pairs ))
-intra_pairs_p=`echo "scale=4; 100 * $intra_pairs / $uniq_valid_pairs" | bc | awk '{ printf("%.1f", $0) }'`
+# Modified in v1.5
+inter_pairs_p=`echo "scale=4; 100 * $inter_pairs / $uniq_total_pairs" | bc | awk '{ printf("%.1f", $0) }'`
+# Modified in v1.5
+intra_pairs=$(( $uniq_total_pairs - $inter_pairs ))
+# Modified in v1.5
+intra_pairs_p=`echo "scale=4; 100 * $intra_pairs / $uniq_total_pairs" | bc | awk '{ printf("%.1f", $0) }'`
 
-hicup_bam_bedpe=${hicup_output_bam_string%.bam}.original.bedpe
-bedtools bamtobed -i $hicup_output_bam_string -bedpe > $hicup_bam_bedpe
-intra_ge_15kb_pairs=$( awk '{ if($1==$4 && ($5+$6)/2 - ($2+$3)/2 >= 15000) intra_ge_15kb++ } END { print intra_ge_15kb }' $hicup_bam_bedpe )
-intra_ge_15kb_pairs_p=`echo "scale=4; 100 * $intra_ge_15kb_pairs / $uniq_valid_pairs" | bc | awk '{ printf("%.1f", $0) }'`
+# Calculate long cis from HiCUP BAM file
+hicup_output_bam_bedpe=${hicup_output_bam_string%.bam}.original.bedpe
+if [ ! -f "$hicup_output_bam_bedpe" ]; then
+    bedtools bamtobed -i $hicup_output_bam_string -bedpe > $hicup_output_bam_bedpe
+fi
+intra_ge_15kb_pairs=$( awk '{ if($1==$4 && ($5+$6)/2 - ($2+$3)/2 >= 15000) intra_ge_15kb++ } END { print intra_ge_15kb }' $hicup_output_bam_bedpe )
+# Modified in v1.5
+intra_ge_15kb_pairs_p=`echo "scale=4; 100 * $intra_ge_15kb_pairs / $uniq_total_pairs" | bc | awk '{ printf("%.1f", $0) }'`
+
+Lcis_trans_ratio=`echo "scale=2; $intra_ge_15kb_pairs / $inter_pairs" | bc | awk '{ printf("%.1f", $0) }'`
 
 timestamp=`date '+%Y/%m/%d %H:%M:%S'`
 echo "Calculating on-target rate [$timestamp] ..."
 
 # Calculate % on-target
-genome_size=$( awk '{ if($7=="None") sum+=$3 } END { print sum }' $digest )
+genome_size=$( awk '{ if($7=="None") sum+=$3 } END { printf("%d", sum) }' $digest )
 
 hicup_bam_extended_srt_bedpe=${hicup_output_bam_string%.bam}.extended.srt.bedpe
-awk '{ {if($9=="+") $3=$3+275} {if($9=="-") $2=$2-275} {if($10=="+") $6=$6+275} {if($10=="-") $5=$5-275} print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6 }' $hicup_bam_bedpe | sort -V > $hicup_bam_extended_srt_bedpe
+if [ ! -f "$hicup_bam_extended_srt_bedpe" ]; then
+    awk '{ {if($9=="+") $3=$3+275} {if($9=="-") $2=$2-275} {if($10=="+") $6=$6+275} {if($10=="-") $5=$5-275} print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6 }' $hicup_output_bam_bedpe | sort -V > $hicup_bam_extended_srt_bedpe
+fi
 
 on_target=$( bedtools pairtobed -f 0 -a $hicup_bam_extended_srt_bedpe -b $BED -type "either" | cut -f1-6 | uniq | wc -l )
 # off_target=$( bedtools pairtobed -f 0 -a $hicup_bam_extended_srt_bedpe -b $BED -type "neither" | cut -f1-6 | uniq | wc -l )
@@ -704,16 +714,18 @@ timestamp=`date '+%Y/%m/%d %H:%M:%S'`
 echo "Calculating enrichment score [$timestamp] ..."
 
 # Use the updated enrichment score calculation!
-# region_list=$out_hicup"/region_list.bed"
 # sed -e 's/chrx/chrX/g' -e 's/chry/chrY/g' -e 's/chrm/chrM/g' -e 's/"//g' $BED | cut -f4 | sed 's/,/\n/g' | sed 's/[:-]/\t/g' | sort -uV > $region_list
-target_size=$( cat $BED | awk '{ sum+=$3-$2 } END { print sum }' )
+target_size=$( cat $BED | awk '{ sum+=$3-$2 } END { printf("%d", sum) }' )
 off_target_size=$(( $genome_size - $target_size ))
 
 background_RPKM=`echo "scale=16; $off_target * (1000 / $off_target_size) * (1000000 / $ALL)" | bc | awk '{ printf("%.10f", $0) }'`
 
-echo -e "# Genome size = $genome_size\n# Target size = $target_size\n# Off-target size = $off_target_size\n# Total reads = $ALL\n# Off-target reads = $off_target\n# Background RPKM = $background_RPKM\n# Chr\tStart\tEnd\tCount\tRegion_size\tRPKM\tEnrichment" > ${hicup_bam_extended_srt_bedpe%.srt.bedpe}.enrichment.srt.bed
+hicup_bam_extended_srt_bedpe_enrichment_bed=${hicup_bam_extended_srt_bedpe%.srt.bedpe}.enrichment.srt.bed
+if [ ! -f "$hicup_bam_extended_srt_bedpe_enrichment_bed" ]; then
+    echo -e "# Genome size = $genome_size\n# Target size = $target_size\n# Off-target size = $off_target_size\n# Total reads = $ALL\n# Off-target reads = $off_target\n# Background RPKM = $background_RPKM\n# Chr\tStart\tEnd\tCount\tRegion_size\tRPKM\tEnrichment" > $hicup_bam_extended_srt_bedpe_enrichment_bed
 
-bedtools pairtobed -f 0 -a $hicup_bam_extended_srt_bedpe -b $BED -type "either" | cut -f7-9 | sort -V | uniq -c | awk -v all_reads=$ALL -v off_target=$off_target -v off_target_size=$off_target_size -v background_RPKM=$background_RPKM '{ len=$4-$3; count=$1; RPKM = count * (1000 / len) * (1000000 / all_reads); enrichment = RPKM / background_RPKM; print $2"\t"$3"\t"$4"\t"$1"\t"len"\t"RPKM"\t"enrichment }' | sort -V >> ${hicup_bam_extended_srt_bedpe%.srt.bedpe}.enrichment.srt.bed
+    bedtools pairtobed -f 0 -a $hicup_bam_extended_srt_bedpe -b $BED -type "either" | cut -f7-9 | sort -V | uniq -c | awk -v all_reads=$ALL -v off_target=$off_target -v off_target_size=$off_target_size -v background_RPKM=$background_RPKM '{ len=$4-$3; count=$1; RPKM = count * (1000 / len) * (1000000 / all_reads); enrichment = RPKM / background_RPKM; print $2"\t"$3"\t"$4"\t"$1"\t"len"\t"RPKM"\t"enrichment }' | sort -V >> $hicup_bam_extended_srt_bedpe_enrichment_bed
+fi
 
 echo genome_size=$genome_size
 echo target_size=$target_size
@@ -721,6 +733,9 @@ echo off_target_size=$off_target_size
 echo ALL=$ALL
 echo on_target=$on_target
 echo off_target=$off_target
+echo on_target_p=$on_target_p
+#echo lcis_on_target=$lcis_on_target
+#echo lcis_on_target_p=$lcis_on_target_p
 echo background_RPKM=$background_RPKM
 enrichment=$(( $off_target_size * $on_target / $target_size / $off_target ))
 
@@ -742,7 +757,9 @@ echo mapped_p=$mapped_p
 
 echo total_pairs=$total_pairs
 echo valid_pairs=$valid_pairs
+echo uniq_total_pairs=$uniq_total_pairs
 echo uniq_valid_pairs=$uniq_valid_pairs
+echo uniqueness_rate=$uniqueness_rate
 echo duplicated_pairs=$duplicated_pairs
 echo duplicated_pairs_p=$duplicated_pairs_p
 echo uniq_valid_pairs_p=$uniq_valid_pairs_p
@@ -753,17 +770,11 @@ echo intra_pairs=$intra_pairs
 echo intra_pairs_p=$intra_pairs_p
 echo intra_ge_15kb_pairs=$intra_ge_15kb_pairs
 echo intra_ge_15kb_pairs_p=$intra_ge_15kb_pairs_p
-
-#echo region_list=$region_list
-echo on_target=$on_target
-echo on_target_p=$on_target_p
-#echo lcis_on_target=$lcis_on_target
-#echo lcis_on_target_p=$lcis_on_target_p
+echo Lcis_trans_ratio=$Lcis_trans_ratio
 
 echo total_loops=$total_loops
 echo target_raw_pairs=$target_raw_pairs
 printf "Enrichment score = %.2f\n" $enrichment
-
 
 # Write QC tables
 QC_result_deep=$out_dir"/"$output_prefix"_Arima_QC_deep.txt"
